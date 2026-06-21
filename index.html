@@ -1,170 +1,202 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EnumAR - Three.js WebXR</title>
-    
-    <!-- 1. Panggil Three.js Core -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- 2. Panggil GLTFLoader untuk membaca file .glb dari Blender -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- 3. Panggil Anime.js untuk animasi tombol UI -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EnumAR - Web Augmented Reality</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <!-- App Container -->
+    <div id="app">
+      <!-- Background Decorative Lights -->
+      <div class="glow glow-1"></div>
+      <div class="glow glow-2"></div>
 
-    <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        /* Tombol Start AR bawaan WebXR */
-        #ARButton {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            padding: 12px 24px; background: #007bff; color: white;
-            border: none; border-radius: 25px; font-weight: bold; z-index: 999;
-        }
-        /* Tombol untuk menaruh objek di lantai */
-        #place-button {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            padding: 14px 28px; background-color: #28a745; color: white;
-            border: none; border-radius: 30px; font-size: 16px; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; display: none;
-        }
-    </style>
-</head>
-<body>
+      <!-- Header -->
+      <header class="header animate-fade-in">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span class="logo-text">Enum<span>AR</span></span>
+        </div>
+      </header>
 
-    <button id="place-button">TEMPATKAN LOGO</button>
-
-    <script type="module">
-        // Import WebXR ARButton Helper
-        import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/webxr/ARButton.js';
-
-        let container, camera, scene, renderer;
-        let reticle, modelContainer;
-        let hitTestSource = null;
-        let hitTestSourceRequested = false;
-
-        init();
-        animate();
-
-        function init() {
-            container = document.createElement('div');
-            document.body.appendChild(container);
-
-            scene = new THREE.Scene();
-
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-            // Pencahayaan
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            light.position.set(0.5, 1, 0.25);
-            scene.add(light);
-
-            // Renderer Utama dengan Fitur XR Aktif
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.xr.enabled = true;
-            container.appendChild(renderer.domElement);
-
-            // Tambahkan tombol resmi "Start AR" dari WebXR Three.js
-            document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-
-            // 1. Membuat Lingkaran Putih (Reticle / Hit Test) di Lantai
-            reticle = new THREE.Mesh(
-                new THREE.RingGeometry(0.1, 0.13, 32).rotateX(-Math.PI / 2),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            reticle.matrixAutoUpdate = false;
-            reticle.visible = false;
-            scene.add(reticle);
-
-            // 2. Wadah untuk menaruh model 3D
-            modelContainer = new THREE.Group();
-            scene.add(modelContainer);
-
-            // Load file .glb dari Blender kamu menggunakan GLTFLoader Three.js
-            const loader = new THREE.GLTFLoader();
-            loader.load('logo.glb', function (gltf) {
-                const model = gltf.scene;
-                model.scale.set(0.5, 0.5, 0.5); // Sesuaikan skala jika terlalu besar
-                modelContainer.add(model);
-                modelContainer.visible = false; 
-            });
-
-            // 3. Logika Tombol Tempatkan Logo (Paket Anime.js)
-            const placeBtn = document.getElementById('place-button');
+      <!-- Main Section -->
+      <main class="main-content">
+        <!-- Left Panel: 3D Interactive Viewport -->
+        <div class="viewport-section animate-slide-up">
+          <div class="card viewport-card">
+            <div class="card-header">
+              <span class="badge">3D Preview</span>
+              <h3>Pratinjau Model Interaktif</h3>
+            </div>
             
-            renderer.xr.addEventListener('sessionstart', () => {
-                placeBtn.style.display = 'block';
-                anime({
-                    targets: '#place-button',
-                    translateY: [50, 0],
-                    opacity: [0, 1],
-                    duration: 1000,
-                    easing: 'easeOutElastic(1, .6)'
-                });
-            });
+            <div class="canvas-container">
+              <!-- Canvas loaded via JS -->
+              <div id="canvas-preview"></div>
+              
+              <!-- Loader Screen -->
+              <div id="loader" class="loader-overlay">
+                <div class="spinner"></div>
+                <div class="loader-text">Mengunduh Model 3D...</div>
+                <div class="progress-bar-container">
+                  <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="progress-percent" class="progress-percent">0%</div>
+              </div>
+            </div>
 
-            placeBtn.addEventListener('click', () => {
-                if (reticle.visible) {
-                    // Pindahkan posisi wadah model ke posisi lingkaran putih saat ini
-                    modelContainer.position.setFromMatrixPosition(reticle.matrix);
-                    modelContainer.visible = true;
+            <div class="viewport-footer">
+              <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.72 2.73L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg> Sentuh dan seret untuk memutar model. Cubit untuk memperbesar.</p>
+            </div>
+          </div>
+        </div>
 
-                    // Animasi rotasi berputar pas logo muncul pakai Anime.js
-                    anime({
-                        targets: modelContainer.rotation,
-                        y: Math.PI * 2,
-                        duration: 1500,
-                        easing: 'easeOutQuint'
-                    });
-                }
-            });
+        <!-- Right Panel: AR Trigger & Guide -->
+        <div class="control-section animate-slide-up" style="animation-delay: 0.1s;">
+          <div class="card control-card">
+            <h1 class="main-title">Eksplorasi Objek dalam <span class="text-gradient">Augmented Reality</span></h1>
+            <p class="description">Tempatkan dan interaksikan dengan model 3D logo digital kami di lingkungan nyata Anda langsung melalui browser HP.</p>
+            
+            <!-- Launch Button -->
+            <button id="enter-ar-btn" class="btn btn-primary btn-large">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <circle cx="12" cy="12" r="4"></circle>
+              </svg>
+              <span>Mulai Pengalaman AR</span>
+            </button>
 
-            window.addEventListener('resize', onWindowResize);
-        }
+            <!-- Guide Steps -->
+            <div class="guide-box">
+              <h4>Cara Bermain di AR:</h4>
+              <ul class="steps-list">
+                <li>
+                  <div class="step-num">1</div>
+                  <div class="step-text">Tekan tombol <strong>"Mulai Pengalaman AR"</strong> di atas memakai HP Anda.</div>
+                </li>
+                <li>
+                  <div class="step-num">2</div>
+                  <div class="step-text">Berikan izin akses kamera saat diminta oleh browser.</div>
+                </li>
+                <li>
+                  <div class="step-num">3</div>
+                  <div class="step-text">Arahkan kamera ke permukaan datar (meja/lantai) lalu gerakkan HP memutar secara perlahan sampai lingkaran indikator muncul.</div>
+                </li>
+                <li>
+                  <div class="step-num">4</div>
+                  <div class="step-text">Ketuk layar di area lingkaran untuk menempatkan model 3D.</div>
+                </li>
+                <li>
+                  <div class="step-num">5</div>
+                  <div class="step-text">Gunakan kontrol di layar untuk mengatur ukuran, rotasi, atau mereset posisi model.</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+      <!-- Footer -->
+      <footer class="footer animate-fade-in" style="animation-delay: 0.2s;">
+        <p>Built with <span class="heart">♥</span> using Three.js & WebXR. Powered by EnumAR.</p>
+      </footer>
+    </div>
 
-        function animate() {
-            renderer.setAnimationLoop(render);
-        }
+    <!-- AR Overlay UI (Displayed only inside AR Session) -->
+    <div id="ar-overlay" class="ar-overlay-ui">
+      <!-- AR Top Navigation -->
+      <div class="ar-top-bar">
+        <div class="ar-status">
+          <span class="ar-pulse-dot"></span>
+          <span>AR Mode Aktif</span>
+        </div>
+        <button id="exit-ar-btn" class="ar-btn-exit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Keluar
+        </button>
+      </div>
 
-        // Fungsi Render per Frame untuk mendeteksi permukaan lantai asli
-        function render(timestamp, frame) {
-            if (frame) {
-                const referenceSpace = renderer.xr.getReferenceSpace();
-                const session = renderer.xr.getSession();
+      <!-- AR Instruction Banner -->
+      <div id="ar-instruction" class="ar-instruction-banner">
+        Arahkan kamera ke lantai & gerakkan perlahan untuk mendeteksi permukaan
+      </div>
 
-                if (hitTestSourceRequested === false) {
-                    session.requestReferenceSpace('viewer').then(function (viewerSpace) {
-                        session.requestHitTestSource({ space: viewerSpace }).then(function (source) {
-                            hitTestSource = source;
-                        });
-                    });
-                    session.addEventListener('end', function () {
-                        hitTestSourceRequested = false;
-                        hitTestSource = null;
-                    });
-                    hitTestSourceRequested = true;
-                }
+      <!-- AR Bottom Control Panel -->
+      <div class="ar-bottom-panel">
+        <div class="ar-panel-header">
+          <h4>Kontrol Objek 3D</h4>
+          <span class="model-name-badge">logo.glb</span>
+        </div>
+        
+        <div class="ar-controls-grid">
+          <!-- Scale Control -->
+          <div class="ar-control-group">
+            <div class="ar-control-label">
+              <span>Ukuran</span>
+              <span id="scale-value">1.0x</span>
+            </div>
+            <input type="range" id="scale-slider" min="0.1" max="3.0" step="0.05" value="1.0" class="ar-slider">
+          </div>
 
-                if (hitTestSource) {
-                    const hitTestResults = frame.getHitTestResults(hitTestSource);
-                    if (hitTestResults.length) {
-                        const hit = hitTestResults[0];
-                        reticle.visible = true;
-                        reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-                    } else {
-                        reticle.visible = false;
-                    }
-                }
-            }
-            renderer.render(scene, camera);
-        }
-    </script>
-</body>
+          <!-- Rotation Control -->
+          <div class="ar-control-group">
+            <div class="ar-control-label">
+              <span>Rotasi</span>
+              <span id="rotation-value">0°</span>
+            </div>
+            <input type="range" id="rotation-slider" min="0" max="360" step="5" value="0" class="ar-slider">
+          </div>
+        </div>
+
+        <div class="ar-panel-buttons">
+          <button id="reset-ar-obj-btn" class="btn btn-secondary btn-small">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            Reset Objek
+          </button>
+          <button id="reposition-btn" class="btn btn-outline btn-small">
+            Pindahkan Model
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error / Support Warning Modal -->
+    <div id="error-modal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-icon error-color">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3>WebXR AR Tidak Didukung</h3>
+        <p class="modal-desc">Perangkat atau browser Anda tidak mendukung fitur WebXR AR Hit-Test. Agar bisa menikmati mode AR:</p>
+        <ul class="modal-list">
+          <li>Gunakan HP Android dengan browser <strong>Google Chrome</strong> terbaru.</li>
+          <li>Pastikan Anda telah menginstal <strong>Google Play Services for AR</strong> di Android.</li>
+          <li>Jika menggunakan iOS (iPhone/iPad), WebXR native belum didukung penuh oleh Safari. Anda masih dapat berinteraksi dengan model 3D di pratinjau browser desktop/mobile kami.</li>
+        </ul>
+        <div class="modal-actions">
+          <button id="close-error-btn" class="btn btn-primary">Oke, Mengerti</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
