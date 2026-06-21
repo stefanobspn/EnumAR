@@ -8,3 +8,5 @@ Aplikasi Web Augmented Reality (AR) interaktif yang menempatkan model 3D menggun
 * **Indikator**: Ketika permukaan terdeteksi, lingkaran ungu akan muncul di permukaan tersebut.
 * **Menaruh Model**: Ketuk layar sekali di posisi lingkaran untuk menempatkan model 3D logo.
 * **Menyesuaikan**: Geser slider **Ukuran** dan **Rotasi** di panel bawah untuk memodifikasi model yang sudah ditempatkan.
+
+rawr
