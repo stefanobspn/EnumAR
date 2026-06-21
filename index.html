@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>EnumAR - Three.js WebXR</title>
+    
+    <!-- 1. Panggil Three.js Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 2. Panggil GLTFLoader untuk membaca file .glb dari Blender -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- 3. Panggil Anime.js untuk animasi tombol UI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        /* Tombol Start AR bawaan WebXR */
+        #ARButton {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; background: #007bff; color: white;
+            border: none; border-radius: 25px; font-weight: bold; z-index: 999;
+        }
+        /* Tombol untuk menaruh objek di lantai */
+        #place-button {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            padding: 14px 28px; background-color: #28a745; color: white;
+            border: none; border-radius: 30px; font-size: 16px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="place-button">TEMPATKAN LOGO</button>
+
+    <script type="module">
+        // Import WebXR ARButton Helper
+        import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/webxr/ARButton.js';
+
+        let container, camera, scene, renderer;
+        let reticle, modelContainer;
+        let hitTestSource = null;
+        let hitTestSourceRequested = false;
+
+        init();
+        animate();
+
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+            // Pencahayaan
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            light.position.set(0.5, 1, 0.25);
+            scene.add(light);
+
+            // Renderer Utama dengan Fitur XR Aktif
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Tambahkan tombol resmi "Start AR" dari WebXR Three.js
+            document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+            // 1. Membuat Lingkaran Putih (Reticle / Hit Test) di Lantai
+            reticle = new THREE.Mesh(
+                new THREE.RingGeometry(0.1, 0.13, 32).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            reticle.matrixAutoUpdate = false;
+            reticle.visible = false;
+            scene.add(reticle);
+
+            // 2. Wadah untuk menaruh model 3D
+            modelContainer = new THREE.Group();
+            scene.add(modelContainer);
+
+            // Load file .glb dari Blender kamu menggunakan GLTFLoader Three.js
+            const loader = new THREE.GLTFLoader();
+            loader.load('logo.glb', function (gltf) {
+                const model = gltf.scene;
+                model.scale.set(0.5, 0.5, 0.5); // Sesuaikan skala jika terlalu besar
+                modelContainer.add(model);
+                modelContainer.visible = false; 
+            });
+
+            // 3. Logika Tombol Tempatkan Logo (Paket Anime.js)
+            const placeBtn = document.getElementById('place-button');
+            
+            renderer.xr.addEventListener('sessionstart', () => {
+                placeBtn.style.display = 'block';
+                anime({
+                    targets: '#place-button',
+                    translateY: [50, 0],
+                    opacity: [0, 1],
+                    duration: 1000,
+                    easing: 'easeOutElastic(1, .6)'
+                });
+            });
+
+            placeBtn.addEventListener('click', () => {
+                if (reticle.visible) {
+                    // Pindahkan posisi wadah model ke posisi lingkaran putih saat ini
+                    modelContainer.position.setFromMatrixPosition(reticle.matrix);
+                    modelContainer.visible = true;
+
+                    // Animasi rotasi berputar pas logo muncul pakai Anime.js
+                    anime({
+                        targets: modelContainer.rotation,
+                        y: Math.PI * 2,
+                        duration: 1500,
+                        easing: 'easeOutQuint'
+                    });
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            renderer.setAnimationLoop(render);
+        }
+
+        // Fungsi Render per Frame untuk mendeteksi permukaan lantai asli
+        function render(timestamp, frame) {
+            if (frame) {
+                const referenceSpace = renderer.xr.getReferenceSpace();
+                const session = renderer.xr.getSession();
+
+                if (hitTestSourceRequested === false) {
+                    session.requestReferenceSpace('viewer').then(function (viewerSpace) {
+                        session.requestHitTestSource({ space: viewerSpace }).then(function (source) {
+                            hitTestSource = source;
+                        });
+                    });
+                    session.addEventListener('end', function () {
+                        hitTestSourceRequested = false;
+                        hitTestSource = null;
+                    });
+                    hitTestSourceRequested = true;
+                }
+
+                if (hitTestSource) {
+                    const hitTestResults = frame.getHitTestResults(hitTestSource);
+                    if (hitTestResults.length) {
+                        const hit = hitTestResults[0];
+                        reticle.visible = true;
+                        reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                    } else {
+                        reticle.visible = false;
+                    }
+                }
+            }
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
