@@ -441,7 +441,7 @@ function xrRender(timestamp, frame) {
     dirLight.target = loadedModelGroup;
   }
 
-  renderer.render(scene, cameraProxyXR());
+  renderer.render(scene, previewCamera);
 }
 
 // Proxy to get active XR camera safely from renderer (since camera changes in WebXR)
