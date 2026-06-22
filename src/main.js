@@ -59,6 +59,7 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
+  renderer.setClearColor(0x000000, 0); // Pastikan background render transparan
   previewContainer.appendChild(renderer.domElement);
 
   // Controls
@@ -285,7 +286,21 @@ async function onSessionStarted(session) {
   isArMode = true;
   modelPlaced = false;
 
-  // Toggle DOM Visibilities
+  // Move canvas to body so it remains active and visible in DOM
+  document.body.appendChild(renderer.domElement);
+  
+  // Style canvas to not affect page layout if needed
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.domElement.style.zIndex = '-1';
+  renderer.domElement.style.pointerEvents = 'none';
+
+  // Toggle DOM Visibilities & Apply transparency class
+  document.body.classList.add('ar-active');
+  document.documentElement.classList.add('ar-active');
   document.getElementById('app').style.display = 'none';
   arOverlay.style.display = 'flex';
 
@@ -326,7 +341,21 @@ function onSessionEnded() {
   xrSession = null;
   isArMode = false;
 
-  // Restore DOM Visibilities
+  // Move canvas back to preview container
+  previewContainer.appendChild(renderer.domElement);
+  
+  // Restore style
+  renderer.domElement.style.position = '';
+  renderer.domElement.style.top = '';
+  renderer.domElement.style.left = '';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.domElement.style.zIndex = '';
+  renderer.domElement.style.pointerEvents = '';
+
+  // Restore DOM Visibilities & Remove transparency class
+  document.body.classList.remove('ar-active');
+  document.documentElement.classList.remove('ar-active');
   document.getElementById('app').style.display = 'flex';
   arOverlay.style.display = 'none';
 

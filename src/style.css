@@ -817,3 +817,20 @@ body {
     transform: translateY(0);
   }
 }
+
+/* WebXR Transparency Overrides */
+html.ar-active,
+body.ar-active {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+#app.ar-active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+#app.ar-active .glow {
+  display: none !important;
+}
