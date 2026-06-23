@@ -134,8 +134,9 @@ function loadModel() {
   const loader = new GLTFLoader();
 
   // Fetch logo.glb from the public folder (using relative path for GitHub Pages compatibility)
+  const basePath = import.meta.env.BASE_URL;
   loader.load(
-    './logo.glb',
+    `${basePath}logo.glb`,
     (gltf) => {
       rawGltfScene = gltf.scene;
 
