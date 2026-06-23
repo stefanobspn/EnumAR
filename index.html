@@ -20,6 +20,21 @@
           theme: 'Dark'
         }
       });
+      
+      // Sembunyikan ikon melayang bawaan Eruda
+      eruda.position({x: 9999, y: 9999});
+      
+      // Bind ke tombol custom di header
+      document.addEventListener('DOMContentLoaded', () => {
+        const debugBtn = document.getElementById('custom-debug-btn');
+        if (debugBtn) {
+          debugBtn.addEventListener('click', () => {
+            if (eruda._isInit) {
+              eruda.show();
+            }
+          });
+        }
+      });
     </script>
   </head>
   <body>
@@ -30,7 +45,7 @@
       <div class="glow glow-2"></div>
 
       <!-- Header -->
-      <header class="header animate-fade-in">
+      <header class="header animate-fade-in" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div class="logo">
           <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -39,6 +54,7 @@
           </svg>
           <span class="logo-text">Enum<span>AR</span></span>
         </div>
+        <button id="custom-debug-btn" class="btn btn-outline btn-small" style="padding: 6px 12px; font-size: 12px;">Buka Log (Debug)</button>
       </header>
 
       <!-- Main Section -->
