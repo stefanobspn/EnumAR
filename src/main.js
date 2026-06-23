@@ -261,8 +261,8 @@ async function startArExperience() {
       if (supported) {
         // Setup options
         const sessionInit = {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
+          requiredFeatures: ['hit-test', 'local-floor'],
+          optionalFeatures: ['dom-overlay', 'light-estimation'],
           domOverlay: { root: arOverlay }
         };
 
