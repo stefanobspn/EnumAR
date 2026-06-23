@@ -327,7 +327,7 @@ async function onSessionStarted(session) {
 
   // Set instructions
   arInstruction.classList.remove('success');
-  arInstruction.textContent = 'Arahkan kamera ke lantai & gerakkan perlahan untuk mendeteksi permukaan';
+  arInstruction.textContent = 'Arahkan kamera ke lantai atau dinding & gerakkan perlahan untuk mendeteksi permukaan';
 
   // Tell renderer to use XR session
   renderer.xr.enabled = true;
@@ -376,7 +376,9 @@ function onSessionEnded() {
     loadedModelGroup.visible = true;
     loadedModelGroup.position.set(0, 0, 0);
     loadedModelGroup.rotation.set(0, 0, 0);
+    loadedModelGroup.quaternion.identity();
     loadedModelGroup.scale.setScalar(1.0);
+    if(rawGltfScene) rawGltfScene.rotation.y = 0; // Reset inner rotation
   }
 
   // Restore helper grid position
@@ -398,11 +400,17 @@ function xrRender(timestamp, frame) {
   const session = renderer.xr.getSession();
   const referenceSpace = renderer.xr.getReferenceSpace();
 
-  // Create hit test source if not initialized
-  if (!hitTestSourceRequested) {
-    console.log('[WebXR] Requesting reference space & hit test source...');
-    session.requestReferenceSpace('viewer').then((viewerSpace) => {
-      session.requestHitTestSource({ space: viewerSpace }).then((source) => {
+      // Create hit test source if not initialized
+      if (!hitTestSourceRequested) {
+        console.log('[WebXR] Requesting reference space & hit test source...');
+        session.requestReferenceSpace('viewer').then((viewerSpace) => {
+          // Detect both horizontal and vertical surfaces
+          const hitTestOptions = { 
+            space: viewerSpace,
+            entityTypes: ['plane'] // "plane" includes both horizontal and vertical
+          };
+          
+          session.requestHitTestSource(hitTestOptions).then((source) => {
         console.log('[WebXR] Hit test source obtained!');
         hitTestSource = source;
       }).catch(err => {
@@ -432,6 +440,9 @@ function xrRender(timestamp, frame) {
         // Show reticle and update position matrix
         reticle.visible = true;
         reticle.matrix.fromArray(pose.transform.matrix);
+        
+        // Orient the reticle to match the surface normal (wall or floor)
+        // WebXR hit poses automatically align their Y-axis with the surface normal
 
         // Update instructions
         if (!modelPlaced) {
@@ -478,11 +489,15 @@ function onArSelect() {
     const rotation = new THREE.Quaternion();
     const scale = new THREE.Vector3();
 
-    // Get position and rotation from the hit reticle matrix
+    // Get position, rotation and scale from the hit reticle matrix
     reticle.matrix.decompose(position, rotation, scale);
 
-    // Place model at reticle pose
+    // Place model at reticle pose (aligns with surface normal)
     loadedModelGroup.position.copy(position);
+    
+    // Apply rotation so the model sits flat against the wall/floor
+    // WebXR Hit Pose Y-axis is the normal of the surface
+    loadedModelGroup.quaternion.copy(rotation);
     
     // Check if it's the first time placing
     if (!modelPlaced) {
@@ -533,12 +548,13 @@ function showArNotSupported() {
   errorModal.classList.add('active');
 }
 
-// Reset placing and scale
-function resetArObject() {
-  if (loadedModelGroup) {
-    loadedModelGroup.position.set(0, 0, 0);
-    loadedModelGroup.rotation.set(0, 0, 0);
-    loadedModelGroup.scale.setScalar(1.0);
+  // Reset placing and scale
+  function resetArObject() {
+    if (loadedModelGroup) {
+      loadedModelGroup.position.set(0, 0, 0);
+      loadedModelGroup.rotation.set(0, 0, 0);
+      loadedModelGroup.quaternion.identity(); // Reset quaternion as well
+      loadedModelGroup.scale.setScalar(1.0);
     modelPlaced = false;
     loadedModelGroup.visible = false;
     shadowPlane.position.y = 0;
@@ -554,16 +570,17 @@ function resetArObject() {
   }
 }
 
-// Force reposition model to current reticle manually
-function forceReposition() {
-  if (reticle.visible && loadedModelGroup) {
-    const position = new THREE.Vector3();
-    const rotation = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-
-    reticle.matrix.decompose(position, rotation, scale);
-    loadedModelGroup.position.copy(position);
-    shadowPlane.position.y = position.y;
+  // Force reposition model to current reticle manually
+  function forceReposition() {
+    if (reticle.visible && loadedModelGroup) {
+      const position = new THREE.Vector3();
+      const rotation = new THREE.Quaternion();
+      const scale = new THREE.Vector3();
+  
+      reticle.matrix.decompose(position, rotation, scale);
+      loadedModelGroup.position.copy(position);
+      loadedModelGroup.quaternion.copy(rotation); // Orient to new surface
+      shadowPlane.position.y = position.y;
     loadedModelGroup.visible = true;
     modelPlaced = true;
     
@@ -600,8 +617,8 @@ function setupUIListeners() {
     const val = parseInt(e.target.value);
     rotationValue.textContent = val + '°';
     if (loadedModelGroup && modelPlaced) {
-      // Convert degrees to radians
-      loadedModelGroup.rotation.y = THREE.MathUtils.degToRad(val);
+      // In AR, we rotate the inner scene to preserve the outer group's surface alignment (quaternion)
+      rawGltfScene.rotation.y = THREE.MathUtils.degToRad(val);
     }
   });
 
