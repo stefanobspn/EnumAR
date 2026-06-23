@@ -422,27 +422,31 @@ function xrRender(timestamp, frame) {
 
   // Run hit test
   if (hitTestSource) {
-    const hitTestResults = frame.getHitResults(hitTestSource);
+    try {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
 
-    if (hitTestResults.length > 0) {
-      const hit = hitTestResults[0];
-      const pose = hit.getPose(referenceSpace);
+      if (hitTestResults.length > 0) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
 
-      // Show reticle and update position matrix
-      reticle.visible = true;
-      reticle.matrix.fromArray(pose.transform.matrix);
+        // Show reticle and update position matrix
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
 
-      // Update instructions
-      if (!modelPlaced) {
-        arInstruction.classList.add('success');
-        arInstruction.textContent = 'Permukaan terdeteksi! Ketuk layar untuk menempatkan model';
+        // Update instructions
+        if (!modelPlaced) {
+          arInstruction.classList.add('success');
+          arInstruction.textContent = 'Permukaan terdeteksi! Ketuk layar untuk menempatkan model';
+        }
+      } else {
+        reticle.visible = false;
+        if (!modelPlaced) {
+          arInstruction.classList.remove('success');
+          arInstruction.textContent = 'Gerakkan kamera perlahan di permukaan datar...';
+        }
       }
-    } else {
-      reticle.visible = false;
-      if (!modelPlaced) {
-        arInstruction.classList.remove('success');
-        arInstruction.textContent = 'Gerakkan kamera perlahan di permukaan datar...';
-      }
+    } catch (err) {
+      console.error('[WebXR] Error during hit test:', err);
     }
   }
 
