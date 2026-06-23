@@ -249,15 +249,19 @@ function animate() {
 
 // Trigger check and start AR Session
 async function startArExperience() {
+  console.log('[WebXR] Start button clicked. Checking model...');
   if (!loadedModelGroup) {
     alert('Model belum selesai diunduh. Tunggu beberapa saat.');
     return;
   }
 
   // Check if WebXR is supported
+  console.log('[WebXR] Checking xr in navigator...', ('xr' in navigator));
   if ('xr' in navigator) {
     try {
+      console.log('[WebXR] Checking immersive-ar support...');
       const supported = await navigator.xr.isSessionSupported('immersive-ar');
+      console.log('[WebXR] immersive-ar supported:', supported);
       if (supported) {
         // Setup options
         const sessionInit = {
@@ -265,24 +269,28 @@ async function startArExperience() {
           optionalFeatures: ['dom-overlay', 'light-estimation'],
           domOverlay: { root: arOverlay }
         };
-
+        
+        console.log('[WebXR] Requesting session with params:', sessionInit);
         // Request immersive session
         const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
         onSessionStarted(session);
       } else {
+        console.warn('[WebXR] immersive-ar is NOT supported on this browser/device');
         showArNotSupported();
       }
     } catch (err) {
-      console.error('WebXR session support check failed:', err);
+      console.error('[WebXR] session support check failed:', err);
       showArNotSupported();
     }
   } else {
+    console.warn('[WebXR] navigator.xr is undefined');
     showArNotSupported();
   }
 }
 
 // AR Session initiation
 async function onSessionStarted(session) {
+  console.log('[WebXR] AR Session Started successfully', session);
   xrSession = session;
   isArMode = true;
   modelPlaced = false;
@@ -392,10 +400,16 @@ function xrRender(timestamp, frame) {
 
   // Create hit test source if not initialized
   if (!hitTestSourceRequested) {
+    console.log('[WebXR] Requesting reference space & hit test source...');
     session.requestReferenceSpace('viewer').then((viewerSpace) => {
       session.requestHitTestSource({ space: viewerSpace }).then((source) => {
+        console.log('[WebXR] Hit test source obtained!');
         hitTestSource = source;
+      }).catch(err => {
+        console.error('[WebXR] Failed to get hit test source:', err);
       });
+    }).catch(err => {
+      console.error('[WebXR] Failed to get reference space:', err);
     });
 
     session.addEventListener('end', () => {
